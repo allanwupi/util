@@ -14,8 +14,8 @@ struct DiceRoll {
 	int size;
 	int modifier;
 	int rerolls; // positive for advantage, negative for disadvantage
-	int total;
-	double avg;
+	int sum;
+	double average;
 	unsigned char sides;
 	unsigned char data[];
 };
@@ -74,8 +74,10 @@ struct DiceRoll *convert_arg_to_dice(const char *arg) {
 	if (modifier) buffered += snprintf(roll->descriptor, BUFFER_CHARS, "%id%i%+i", size, sides, modifier);
 	else buffered += snprintf(roll->descriptor, BUFFER_CHARS, "%id%i", size, sides);
 	if (rerolls != 0) {
-		buffered += snprintf(roll->descriptor+buffered, BUFFER_CHARS-buffered, "%s", (rerolls > 0) ? " with advantage" : " with disadvantage");
-		if (abs(rerolls) > 1) snprintf(roll->descriptor+buffered, BUFFER_CHARS-buffered, " x%i", abs(rerolls));
+		if (abs(rerolls) > 1) buffered += snprintf(roll->descriptor+buffered, BUFFER_CHARS-buffered, " with x%i ", abs(rerolls));
+		else buffered += snprintf(roll->descriptor+buffered, BUFFER_CHARS-buffered, " with ");
+		if (rerolls < 0) buffered += snprintf(roll->descriptor+buffered, BUFFER_CHARS-buffered, "dis");
+		snprintf(roll->descriptor+buffered, BUFFER_CHARS-buffered, "advantage");
 	}
 	roll->size = size;
 	roll->sides = sides;
@@ -107,17 +109,17 @@ void roll_dice(struct DiceRoll *roll) {
 			}
 		}
 		roll->data[i] = curr_roll;
-		roll->total += curr_roll;
+		roll->sum += curr_roll;
 	}
-	roll->avg = (double)roll->total / roll->size;
-	roll->total += roll->modifier;
+	roll->average = (double)roll->sum / roll->size;
+	roll->sum += roll->modifier;
 }
 
 void print_rolls(struct DiceRoll *roll, char verbose) {
 	int *hist = calloc(roll->sides+1, sizeof(int));
 	for (int i = 0; i < roll->size; i++) hist[roll->data[i]]++;
 	if (verbose == 'l') {
-		printf("%d ", roll->total);
+		printf("%d ", roll->sum);
 		if (roll->sides == 20 && hist[20] > 0) {
 			if (hist[20] == 1) printf("(+1 crit)");
 			else printf("(+%d crits)", hist[20]);
@@ -134,9 +136,9 @@ void print_rolls(struct DiceRoll *roll, char verbose) {
 		}
 		if (i < roll->size-1) printf(",");
 	}
-	printf("]\n    sum = %d\n", roll->total);
-	printf("    avg = %.3f\n", roll->avg);
-	if (hist[1])  printf("    nat1  = %d\n", hist[1]);
+	printf("]\n    sum = %d\n", roll->sum);
+	printf("    avg = %.3f\n", roll->average);
+	if (hist[1])  printf("    nat1 = %d\n", hist[1]);
 	if (hist[20]) printf("    nat20 = %d\n", hist[20]);
 	if (verbose == 'h') {
 		const char *bar = "##################################################";
@@ -173,7 +175,7 @@ int main(int argc, char *argv[]) {
 		}
 		roll_dice(roll);
 		print_rolls(roll, verbose);
-		running_total += roll->total;
+		running_total += roll->sum;
 		free(roll);
 		roll = NULL;
 	}
