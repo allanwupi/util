@@ -11,27 +11,27 @@
 
 struct DiceRoll {
 	char descriptor[BUFFER_CHARS];
-	int size;
-	int modifier;
+	int len;
+	unsigned char sides;
 	int rerolls; // positive for advantage, negative for disadvantage
+	int modifier;
 	int sum;
 	double average;
-	unsigned char sides;
 	unsigned char data[];
 };
 
-void parse_arg_string(const char *arg, int *size, int *sides, int *rerolls, int *modifier);
+void parse_arg_string(const char *arg, int *len, int *sides, int *rerolls, int *modifier);
 struct DiceRoll *convert_arg_to_dice(const char *arg);
 unsigned char roll_die(unsigned char sides);
 void roll_dice(struct DiceRoll *roll);
 void print_rolls(struct DiceRoll *roll, char verbose);
 
-void parse_arg_string(const char *arg, int *size, int *sides, int *rerolls, int *modifier) {
+void parse_arg_string(const char *arg, int *len, int *sides, int *rerolls, int *modifier) {
 	char dest[BUFFER_CHARS] = {0};
 	strcpy(dest, arg);
 	int i = 0;
 	int sign = 1;
-	char *size_str = dest;
+	char *len_str = dest;
 	char *sides_str = NULL;
 	char *rerolls_str = NULL;
 	char *modifier_str = NULL;
@@ -54,8 +54,8 @@ void parse_arg_string(const char *arg, int *size, int *sides, int *rerolls, int 
 		}
 		i++;
 	}
-	if (size_str[0]) *size = atoi(size_str);
-	else *size = 1; // roll 1 die by default
+	if (len_str[0]) *len = atoi(len_str);
+	else *len = 1; // roll 1 die by default
 	if (sides_str != NULL && sides_str[0]) *sides = atoi(sides_str);
 	else *sides = DEFAULT_DIE_SIDES; // set to 20 by default
 	if (rerolls_str != NULL && rerolls_str[0]) *rerolls = atoi(rerolls_str);
@@ -66,20 +66,20 @@ void parse_arg_string(const char *arg, int *size, int *sides, int *rerolls, int 
 
 struct DiceRoll *convert_arg_to_dice(const char *arg) {
 	struct DiceRoll *roll = NULL;
-	int size = 0, sides = 0, rerolls = 0, modifier = 0;
-	parse_arg_string(arg, &size, &sides, &rerolls, &modifier);
-	if (size <= 0 || sides <= 0) return NULL; // failed arg parsing
-	roll = (struct DiceRoll *) calloc(sizeof(struct DiceRoll) + size, 1);
+	int len = 0, sides = 0, rerolls = 0, modifier = 0;
+	parse_arg_string(arg, &len, &sides, &rerolls, &modifier);
+	if (len <= 0 || sides <= 0) return NULL; // failed arg parsing
+	roll = (struct DiceRoll *) calloc(sizeof(struct DiceRoll) + len, 1);
 	int buffered = 0;
-	if (modifier) buffered += snprintf(roll->descriptor, BUFFER_CHARS, "%id%i%+i", size, sides, modifier);
-	else buffered += snprintf(roll->descriptor, BUFFER_CHARS, "%id%i", size, sides);
+	if (modifier) buffered += snprintf(roll->descriptor, BUFFER_CHARS, "%id%i%+i", len, sides, modifier);
+	else buffered += snprintf(roll->descriptor, BUFFER_CHARS, "%id%i", len, sides);
 	if (rerolls != 0) {
 		if (abs(rerolls) > 1) buffered += snprintf(roll->descriptor+buffered, BUFFER_CHARS-buffered, " with x%i ", abs(rerolls));
 		else buffered += snprintf(roll->descriptor+buffered, BUFFER_CHARS-buffered, " with ");
 		if (rerolls < 0) buffered += snprintf(roll->descriptor+buffered, BUFFER_CHARS-buffered, "dis");
 		snprintf(roll->descriptor+buffered, BUFFER_CHARS-buffered, "advantage");
 	}
-	roll->size = size;
+	roll->len = len;
 	roll->sides = sides;
 	roll->rerolls = rerolls;
 	roll->modifier = modifier;
@@ -96,7 +96,7 @@ unsigned char roll_die(unsigned char sides) {
 void roll_dice(struct DiceRoll *roll) {
 	unsigned char curr_roll = 0;
 	unsigned char reroll = 0;
-	for (int i = 0; i < roll->size; i++) {
+	for (int i = 0; i < roll->len; i++) {
 		curr_roll = roll_die(roll->sides);
 		if (roll->rerolls != 0) {
 			int num_rerolls = abs(roll->rerolls);
@@ -111,13 +111,13 @@ void roll_dice(struct DiceRoll *roll) {
 		roll->data[i] = curr_roll;
 		roll->sum += curr_roll;
 	}
-	roll->average = (double)roll->sum / roll->size;
+	roll->average = (double)roll->sum / roll->len;
 	roll->sum += roll->modifier;
 }
 
 void print_rolls(struct DiceRoll *roll, char verbose) {
 	int *hist = calloc(roll->sides+1, sizeof(int));
-	for (int i = 0; i < roll->size; i++) hist[roll->data[i]]++;
+	for (int i = 0; i < roll->len; i++) hist[roll->data[i]]++;
 	if (verbose == 'l') {
 		printf("%d ", roll->sum);
 		if (roll->sides == 20 && hist[20] > 0) {
@@ -128,13 +128,13 @@ void print_rolls(struct DiceRoll *roll, char verbose) {
 		return;
 	}
 	printf("rolled %s:\n    data = [", roll->descriptor);
-	for (int i = 0; i < roll->size; i++) {
+	for (int i = 0; i < roll->len; i++) {
 		if (i < MAX_ROLLS_TO_PRINT) printf("%i",roll->data[i]);
 		if (i == MAX_ROLLS_TO_PRINT) {
 			printf("..."); 
 			break;
 		}
-		if (i < roll->size-1) printf(",");
+		if (i < roll->len-1) printf(",");
 	}
 	printf("]\n    sum = %d\n", roll->sum);
 	printf("    avg = %.3f\n", roll->average);
