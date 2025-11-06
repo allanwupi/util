@@ -11,11 +11,11 @@
 
 struct DiceRoll {
 	char descriptor[BUFFER_CHARS];
-	int len;
+	unsigned int len;
 	unsigned char sides;
 	int rerolls; // positive for advantage, negative for disadvantage
 	int modifier;
-	int sum;
+	unsigned int sum;
 	double average;
 	unsigned char data[];
 };
