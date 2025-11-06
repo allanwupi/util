@@ -3,8 +3,8 @@
 Rolls dice. Takes a single argument string.
 
 ### Example usage
-1. `roll 3d4+1    # rolls 3 d4's with +1 modifier (added at the end)`
-2. `roll 1d20+9^1  # rolls a single d20 with advantage, modifier +9`
+1. `roll 3d4+1       # rolls 3 d4's with +1 modifier (added at the end)`
+2. `roll 1d20+9^1    # rolls a single d20 with advantage, modifier +9`
 3. `roll d20^-2-5    # rolls a single d20 with double disadvantage, modifer -5`
 
 Run `rollv` to print more information or `rollh` to get a histogram.
