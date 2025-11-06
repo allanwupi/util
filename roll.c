@@ -141,17 +141,18 @@ void print_rolls(struct DiceRoll *roll, char verbose) {
 	if (hist[1])  printf("    nat1 = %d\n", hist[1]);
 	if (hist[20]) printf("    nat20 = %d\n", hist[20]);
 	if (verbose == 'h') {
-		const char *bar = "##################################################";
-		int max_roll = hist[1];
-		for (int i = 2; i <= roll->sides; i++) max_roll = (max_roll < hist[i]) ? hist[i] : max_roll;
+		const char *BAR = "##################################################";
+		const int BAR_LEN = 50;
+		int MAX = hist[1];
+		for (int i = 2; i <= roll->sides; i++) MAX = (MAX < hist[i]) ? hist[i] : MAX;
 		int width = 1;
-		while (pow(10, width) <= max_roll) width++;
+		while (pow(10, width) <= MAX) width++;
 		int axis_width = 1;
 		while (pow(10, axis_width) <= roll->sides) axis_width++;
 		printf("    hist = [\n");
 		for (int i = 1; i <= roll->sides; i++) {
 			if (hist[i] != 0 || roll->sides <= MAX_HISTOGRAM_AXIS)
-				printf("        %*dx %*d: %.*s\n", width, hist[i], axis_width, i, 50*hist[i]/max_roll, bar);
+				printf("        %*dx %*d: %.*s\n", width, hist[i], axis_width, i, BAR_LEN*hist[i]/MAX, BAR);
 			if (i == roll->sides) printf("    ]\n");
 		}
 	}
