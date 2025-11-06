@@ -22,7 +22,7 @@ struct DiceRoll {
 void parse_arg_string(const char *arg, int *size, int *sides, int *rerolls, int *modifier);
 struct DiceRoll *convert_arg_to_dice(const char *arg);
 unsigned char roll_die(unsigned char sides);
-void roll_dice(struct DiceRoll *roll, char verbose);
+void roll_dice(struct DiceRoll *roll);
 void print_rolls(struct DiceRoll *roll, char verbose);
 
 void parse_arg_string(const char *arg, int *size, int *sides, int *rerolls, int *modifier) {
@@ -90,7 +90,7 @@ unsigned char roll_die(unsigned char sides) {
 	return r % sides +1;
 }
 
-void roll_dice(struct DiceRoll *roll, char verbose) {
+void roll_dice(struct DiceRoll *roll) {
 	unsigned char curr_roll = 0;
 	unsigned char reroll = 0;
 	for (int i = 0; i < roll->size; i++) {
@@ -170,7 +170,7 @@ int main(int argc, char *argv[]) {
 			fprintf(stderr, "%s: error: failed to parse arg %i\n", argv[0], i);
 			return EXIT_FAILURE;
 		}
-		roll_dice(roll, 0);
+		roll_dice(roll);
 		print_rolls(roll, verbose);
 		running_total += roll->total;
 		free(roll);
