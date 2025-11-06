@@ -1,7 +1,7 @@
 Some basic command-line utilities.
 
 # roll / rollv / rollh
-Rolls dice. Takes a single argument string.
+Rolls dice; takes 1 or more argument strings.
 
 ### Example Usage
 1. `roll 3d4+1       # rolls 3 d4's with +1 modifier (added at the end)`
@@ -10,4 +10,4 @@ Rolls dice. Takes a single argument string.
 
 Run `rollv` to print more information or `rollh` to get a histogram.
 
-TODO: figure out how to actually parse command-line arguments
+TODO: Figure out how to actually parse command-line arguments.
