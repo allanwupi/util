@@ -5,6 +5,7 @@
 #include <time.h>
 
 #define MAX_ROLLS_TO_PRINT 20
+#define DEFAULT_DIE_SIDES 20
 #define MAX_HISTOGRAM_AXIS 20
 #define BUFFER_CHARS 100
 
@@ -56,18 +57,18 @@ void parse_arg_string(const char *arg, int *size, int *sides, int *rerolls, int 
 	if (size_str[0]) *size = atoi(size_str);
 	else *size = 1; // roll 1 die by default
 	if (sides_str != NULL && sides_str[0]) *sides = atoi(sides_str);
-	else *sides = 20; // set to 20 by default
+	else *sides = DEFAULT_DIE_SIDES; // set to 20 by default
 	if (rerolls_str != NULL && rerolls_str[0]) *rerolls = atoi(rerolls_str);
 	else *rerolls = 0;
 	if (modifier_str != NULL && modifier_str[0]) *modifier = sign * atoi(modifier_str);
 	else *modifier = 0;
-	return;
 }
 
 struct DiceRoll *convert_arg_to_dice(const char *arg) {
 	struct DiceRoll *roll = NULL;
 	int size = 0, sides = 0, rerolls = 0, modifier = 0;
 	parse_arg_string(arg, &size, &sides, &rerolls, &modifier);
+	if (size <= 0 || sides <= 0) return NULL; // failed arg parsing
 	roll = (struct DiceRoll *) calloc(sizeof(struct DiceRoll) + size, 1);
 	int buffered = 0;
 	if (modifier) buffered += snprintf(roll->descriptor, BUFFER_CHARS, "%id%i%+i", size, sides, modifier);
@@ -167,7 +168,7 @@ int main(int argc, char *argv[]) {
 	for (int i = 1; i < argc; i++) {
 		roll = convert_arg_to_dice(argv[i]);
 		if (roll == NULL) {
-			fprintf(stderr, "%s: error: failed to parse arg %i\n", argv[0], i);
+			fprintf(stderr, "%s: error: failed to parse arg %s\n", argv[0], argv[i]);
 			return EXIT_FAILURE;
 		}
 		roll_dice(roll);
