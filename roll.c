@@ -28,7 +28,7 @@ void print_rolls(struct DiceRoll *roll, char verbose);
 
 void parse_arg_string(const char *arg, int *len, int *sides, int *rerolls, int *modifier) {
 	char dest[BUFFER_CHARS] = {0};
-	strcpy(dest, arg);
+	strncpy(dest, arg, BUFFER_CHARS-1);
 	int i = 0;
 	int sign = 1;
 	char *len_str = dest;
