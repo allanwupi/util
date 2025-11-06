@@ -15,7 +15,7 @@ struct DiceRoll {
 	unsigned char sides;
 	int rerolls; // positive for advantage, negative for disadvantage
 	int modifier;
-	unsigned int sum;
+	int sum;
 	double average;
 	unsigned char data[];
 };
