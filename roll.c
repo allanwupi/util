@@ -144,10 +144,10 @@ void print_rolls(struct DiceRoll *roll) {
 			}
 			if (i < roll->len-1) printf(",");
 		}
-		printf("]\n    sum = %d\n", roll->sum);
-		printf("    avg = %.3f\n", roll->average);
+		printf("]\n    avg = %.3f\n", roll->average);
 		if (hist[1])  printf("    nat1 = %d\n", hist[1]);
 		if (hist[20]) printf("    nat20 = %d\n", hist[20]);
+		printf("    sum = %d (%c%d)\n", roll->sum - roll->modifier, (roll->modifier < 0) ? '-' : '+', roll->modifier);
 	}
 	if (flags.histogram) {
 		const char *BAR = "##################################################";
