@@ -51,6 +51,7 @@ void parse_arg_string(const char *arg, int *len, int *sides, int *rerolls, int *
 			dest[i] = '\0';
 			rerolls_str = dest+i+1;
 		} else if (dest[i] == '+') {
+			sign = +1;
 			dest[i] = '\0';
 			modifier_str = dest+i+1;
 		} else if (dest[i] == '-') {
