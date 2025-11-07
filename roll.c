@@ -14,7 +14,8 @@ struct ProgramFlags {
 	bool less; // true by default, others false
 	bool verbose;
 	bool histogram;
-} flags = {true, false, false};
+	bool seen_input;
+} flags = {true, false, false, false};
 
 struct DiceRoll {
 	char descriptor[BUFFER_CHARS];
@@ -171,6 +172,7 @@ void print_rolls(struct DiceRoll *roll) {
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
 		fprintf(stderr, "%s: error: no input provided\n", argv[0]);
+		fprintf(stderr, "usage: roll [-vh] dice ... \n");
 		return EXIT_FAILURE;
 	}
 	int running_total = 0;
@@ -216,7 +218,12 @@ int main(int argc, char *argv[]) {
 			running_total += roll->sum;
 			free(roll);
 			roll = NULL;
+			if (!flags.seen_input) flags.seen_input = true;
 		}
+	}
+	if (!flags.seen_input) {
+		fprintf(stderr, "usage: roll [-vh] dice ... \n");
+		return EXIT_FAILURE;
 	}
 	if (!flags.less) printf("total = %d\n", running_total);
 	else if (argc-j+1 > 2) printf("%d\n", running_total);
