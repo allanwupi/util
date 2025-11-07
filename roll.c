@@ -58,7 +58,7 @@ void print_roll_format(struct DiceRoll *roll);
 
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
-		fprintf(stderr, "%s\n", programUsage);
+		printf("%s\n", programUsage);
 		return EXIT_FAILURE;
 	}
 	long running_total = 0;
@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	if (!settings.seen_input) {
-		fprintf(stderr, "%s\n", programUsage);
+		printf("%s\n", programUsage);
 		return EXIT_FAILURE;
 	}
 	if (settings.detail == MORE) printf("total = %ld\n", running_total);
