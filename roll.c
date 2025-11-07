@@ -163,7 +163,7 @@ void print_rolls(struct DiceRoll *roll) {
 		printf("    hist = [\n");
 		for (int i = 1; i <= roll->sides; i++) {
 			if (hist[i] != 0 || roll->sides <= MAX_HISTOGRAM_AXIS)
-				printf("        %*dx %*d: %.*s\n", width, hist[i], axis_width, i, BAR_LEN*hist[i]/MAX, BAR);
+				printf("        %*dx %*d: %.*s\n", width, hist[i], axis_width, i, (BAR_LEN*hist[i]+MAX/2)/MAX, BAR);
 			if (i == roll->sides) printf("    ]\n");
 		}
 	}
@@ -185,7 +185,7 @@ int main(int argc, char *argv[]) {
 		flags.less = false, flags.verbose = true, flags.histogram = true;
 	int num_flags = 0;
 	for (int i = 1; i < argc; i++) {
-        int j = 1;
+		int j = 1;
 		if (argv[i][0] == '-' && argv[i][j] != '\0') {
 			while (argv[i][j] != '\0') {
 				switch (argv[i][j]) {
@@ -208,7 +208,7 @@ int main(int argc, char *argv[]) {
 					return EXIT_FAILURE;
 				}
 				j++;
-                num_flags++;
+				num_flags++;
 			}
 		} else {
 			roll = get_dice_roll(argv[i]);
