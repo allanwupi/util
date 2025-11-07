@@ -15,7 +15,7 @@ const char *programName = "roll";
 const char *programUsage = "usage: roll [-a] [-l | -m] [-h] dice ...";
 
 enum LevelOfDetail {
-	DEFAULT, // print the total, crits (nat 20s) and dice values
+	NORMAL, // print the total, crits (nat 20s) and dice values
 	LESS, // minimal: print only the total and crits (nat 20s)
 	MORE, // verbose: print descriptor string, average, nat1s/nat20s, sum and modifier
 };
@@ -26,7 +26,7 @@ struct ProgramSettings {
 	bool seen_input;
 	unsigned int max_rolls_to_print;
 	unsigned int max_histogram_axis;
-} settings = {DEFAULT, false, DEFAULT_MAX_ROLLS, DEFAULT_MAX_HIST};
+} settings = {NORMAL, false, DEFAULT_MAX_ROLLS, DEFAULT_MAX_HIST};
 
 struct DiceRoll {
 	char descriptor[BUFFER_CHARS];
@@ -106,6 +106,9 @@ int parse_flag(char flag) {
 		case 'm':
 		case 'v':
 			settings.detail = MORE;
+			break;
+		case 'n':
+			settings.detail = NORMAL;
 			break;
 		case 'h':
 			settings.histogram = !settings.histogram;
@@ -223,7 +226,7 @@ void print_roll_format(struct DiceRoll *roll) {
 	for (int i = 0; i < roll->len; i++) {
 		hist[roll->data[i]]++;
 	}
-	if (settings.detail == DEFAULT || settings.detail == LESS) {
+	if (settings.detail == NORMAL || settings.detail == LESS) {
 		printf("%ld", roll->sum);
 		if (roll->sides == 20 && hist[20] > 0) {
 			if (hist[20] == 1) printf(" (+1 crit)");
