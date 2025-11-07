@@ -8,7 +8,7 @@ Rolls dice; takes 1 or more argument strings.
 2. `roll 1d20+9^1    # rolls a single d20 with advantage, modifier +9`
 3. `roll d20^-2-5    # rolls a single d20 with double disadvantage, modifer -5`
 
-Run `rollv` to print more information or `rollh` to get a histogram.
+Run `rollv` to print more information or `rollh` to get a histogram. Alternatively, you can run `roll` with flags `-v` and/or `-h` respectively.
 
 ```
 $ rollh 1000000d20^1
