@@ -11,14 +11,18 @@
 #define DEFAULT_MAX_ROLLS 20
 #define DEFAULT_MAX_HIST 20
 
+const char *programName = "roll";
+const char *programUsage = "usage: roll [-l] [-r | -m | -v] [-h] dice ...";
+
 struct ProgramSettings {
 	bool reduced; // true by default, others false
+	bool minimal;
 	bool verbose;
 	bool histogram;
 	bool seen_input;
 	unsigned int max_rolls_to_print;
 	unsigned int max_histogram_axis;
-} settings = {true, false, false, false, DEFAULT_MAX_ROLLS, DEFAULT_MAX_HIST};
+} settings = {true, false, false, false, false, DEFAULT_MAX_ROLLS, DEFAULT_MAX_HIST};
 
 struct DiceRoll {
 	char descriptor[BUFFER_CHARS];
@@ -35,7 +39,9 @@ void parse_roll(const char *arg, int *len, int *sides, int *rerolls, int *modifi
 struct DiceRoll *get_dice_roll(const char *arg);
 unsigned int roll_die(unsigned int sides);
 void roll_dice(struct DiceRoll *roll);
-void print_rolls(struct DiceRoll *roll);
+void print_roll_data(struct DiceRoll *roll);
+void print_roll_format(struct DiceRoll *roll);
+int parse_flag(char flag);
 
 void parse_roll(const char *arg, int *len, int *sides, int *rerolls, int *modifier) {
 	char dest[BUFFER_CHARS] = {0};
@@ -128,38 +134,68 @@ void roll_dice(struct DiceRoll *roll) {
 	roll->sum += roll->modifier;
 }
 
-void print_rolls(struct DiceRoll *roll) {
+void print_roll_data(struct DiceRoll *roll) {
+	for (int i = 0; i < roll->len; i++) {
+		if (i < settings.max_rolls_to_print) printf("%i",roll->data[i]);
+		if (i == settings.max_rolls_to_print) {
+			printf("..."); 
+			break;
+		}
+		if (i < roll->len-1) printf(",");
+	}
+}
+
+int parse_flag(char flag) {
+	switch (flag) {
+		case 'l':
+		case 'a':
+			settings.max_rolls_to_print = UINT_MAX;
+			break;
+		case 'r':
+			settings.reduced = true;
+			settings.verbose = false;
+			break;
+		case 'm':
+			settings.minimal = true;
+			settings.verbose = false;
+			break;
+		case 'v':
+			settings.reduced = false;
+			settings.minimal = false;
+			settings.verbose = true;
+			break;
+		case 'h':
+			settings.histogram = true;
+			break;
+		case 'n':
+			settings.histogram = false;
+			break;
+		default:
+			return EXIT_FAILURE;
+	}
+	return EXIT_SUCCESS;
+}
+
+void print_roll_format(struct DiceRoll *roll) {
 	unsigned int *hist = calloc(roll->sides+1, sizeof(unsigned int));
 	for (int i = 0; i < roll->len; i++) {
 		hist[roll->data[i]]++;
 	}
-	if (settings.reduced) {
+	if (settings.reduced || settings.minimal) {
 		printf("%ld", roll->sum);
 		if (roll->sides == 20 && hist[20] > 0) {
 			if (hist[20] == 1) printf(" (+1 crit)");
 			else printf(" (+%d crits)", hist[20]);
 		}
-		printf(":    ");
-		for (int i = 0; i < roll->len; i++) {
-			if (i < settings.max_rolls_to_print) printf("%i",roll->data[i]);
-			if (i == settings.max_rolls_to_print) {
-				printf("..."); 
-				break;
-			}
-			if (i < roll->len-1) printf(",");
+		if (!settings.minimal) {
+			printf("\n    : ");
+			print_roll_data(roll);
 		}
 		printf("\n");
 	}
 	if (settings.verbose) {
 		printf("rolled %s:\n    data = [", roll->descriptor);
-		for (int i = 0; i < roll->len; i++) {
-			if (i < settings.max_rolls_to_print) printf("%i",roll->data[i]);
-			if (i == settings.max_rolls_to_print) {
-				printf("..."); 
-				break;
-			}
-			if (i < roll->len-1) printf(",");
-		}
+		print_roll_data(roll);
 		printf("]\n    avg = %.3f\n", roll->average);
 		if (roll->sides == 20 && hist[1])  printf("    nat1 = %d\n", hist[1]);
 		if (roll->sides == 20 && hist[20]) printf("    nat20 = %d\n", hist[20]);
@@ -186,8 +222,7 @@ void print_rolls(struct DiceRoll *roll) {
 
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
-		fprintf(stderr, "%s: error: no input provided\n", argv[0]);
-		fprintf(stderr, "usage: roll [-vh] dice ... \n");
+		fprintf(stderr, "%s\n", programUsage);
 		return EXIT_FAILURE;
 	}
 	long running_total = 0;
@@ -202,26 +237,8 @@ int main(int argc, char *argv[]) {
 		int j = 1;
 		if (argv[i][0] == '-' && argv[i][j] != '\0') {
 			while (argv[i][j] != '\0') {
-				switch (argv[i][j]) {
-				case 'l':
-					settings.max_rolls_to_print = UINT_MAX;
-					break;
-				case 'r':
-					settings.reduced = true;
-					settings.verbose = false;
-					break;
-				case 'v':
-					settings.reduced = false;
-					settings.verbose = true;
-					break;
-				case 'h':
-					settings.histogram = true;
-					break;
-				case 'n':
-					settings.histogram = false;
-					break;
-				default:
-					fprintf(stderr, "%s: error: illegal option %c\n", argv[0], argv[i][j]);
+				if (parse_flag(argv[i][j]) == EXIT_FAILURE) {
+					fprintf(stderr, "%s: error: illegal option %c\n", programName, argv[i][j]);
 					return EXIT_FAILURE;
 				}
 				j++;
@@ -230,11 +247,11 @@ int main(int argc, char *argv[]) {
 		} else {
 			roll = get_dice_roll(argv[i]);
 			if (roll == NULL) {
-				fprintf(stderr, "%s: error: failed to parse arg %s\n", argv[0], argv[i]);
+				fprintf(stderr, "%s: error: failed to parse arg %s\n", programName, argv[i]);
 				return EXIT_FAILURE;
 			}
 			roll_dice(roll);
-			print_rolls(roll);
+			print_roll_format(roll);
 			running_total += roll->sum;
 			free(roll);
 			roll = NULL;
@@ -242,10 +259,10 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	if (!settings.seen_input) {
-		fprintf(stderr, "usage: roll [-vh] dice ... \n");
+		fprintf(stderr, "%s\n", programUsage);
 		return EXIT_FAILURE;
 	}
-	if (!settings.reduced) printf("total = %ld\n", running_total);
+	if (!settings.reduced && !settings.minimal) printf("total = %ld\n", running_total);
 	else if (argc-num_flags > 2) printf("%ld\n", running_total);
 	return EXIT_SUCCESS;
 }
