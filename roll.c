@@ -242,11 +242,13 @@ void print_roll_format(struct DiceRoll *roll) {
 	} else if (settings.detail == NORMAL) {
 		printf("%ld", roll->sum);
 		if (roll->sides == 20 && hist[20] > 0) {
-			if (hist[20] == 1) printf(" (+1 crit)");
+			if (hist[20] == 1) printf(" (+crit)");
 			else printf(" (+%d crits)", hist[20]);
 		}
-		printf("\n    ");
-		print_roll_data(roll);
+		if (roll->len > 1) {
+			printf("\n    ");
+			print_roll_data(roll);
+		}
 		printf("\n");
 	} else if (settings.detail == MORE) {
 		printf("rolled %s:\n    data = [", roll->descriptor);
