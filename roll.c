@@ -1,21 +1,24 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
 #include <math.h>
 #include <time.h>
 #include <stdbool.h>
 
-#define MAX_ROLLS_TO_PRINT 20
-#define DEFAULT_DIE_SIDES 20
-#define MAX_HISTOGRAM_AXIS 20
 #define BUFFER_CHARS 80
+#define DEFAULT_DIE_SIDES 20
+#define DEFAULT_MAX_ROLLS 20
+#define DEFAULT_MAX_HIST 20
 
-struct ProgramFlags {
-	bool less; // true by default, others false
+struct ProgramSettings {
+	bool reduced; // true by default, others false
 	bool verbose;
 	bool histogram;
 	bool seen_input;
-} flags = {true, false, false, false};
+	unsigned int max_rolls_to_print;
+	unsigned int max_histogram_axis;
+} settings = {true, false, false, false, DEFAULT_MAX_ROLLS, DEFAULT_MAX_HIST};
 
 struct DiceRoll {
 	char descriptor[BUFFER_CHARS];
@@ -130,19 +133,28 @@ void print_rolls(struct DiceRoll *roll) {
 	for (int i = 0; i < roll->len; i++) {
 		hist[roll->data[i]]++;
 	}
-	if (flags.less) {
-		printf("%ld ", roll->sum);
+	if (settings.reduced) {
+		printf("%ld", roll->sum);
 		if (roll->sides == 20 && hist[20] > 0) {
-			if (hist[20] == 1) printf("(+1 crit)");
-			else printf("(+%d crits)", hist[20]);
+			if (hist[20] == 1) printf(" (+1 crit)");
+			else printf(" (+%d crits)", hist[20]);
+		}
+		printf(":    ");
+		for (int i = 0; i < roll->len; i++) {
+			if (i < settings.max_rolls_to_print) printf("%i",roll->data[i]);
+			if (i == settings.max_rolls_to_print) {
+				printf("..."); 
+				break;
+			}
+			if (i < roll->len-1) printf(",");
 		}
 		printf("\n");
 	}
-	if (flags.verbose) {
+	if (settings.verbose) {
 		printf("rolled %s:\n    data = [", roll->descriptor);
 		for (int i = 0; i < roll->len; i++) {
-			if (i < MAX_ROLLS_TO_PRINT) printf("%i",roll->data[i]);
-			if (i == MAX_ROLLS_TO_PRINT) {
+			if (i < settings.max_rolls_to_print) printf("%i",roll->data[i]);
+			if (i == settings.max_rolls_to_print) {
 				printf("..."); 
 				break;
 			}
@@ -153,7 +165,7 @@ void print_rolls(struct DiceRoll *roll) {
 		if (roll->sides == 20 && hist[20]) printf("    nat20 = %d\n", hist[20]);
 		printf("    sum = %ld (%s%d)\n", roll->sum - roll->modifier, (roll->modifier >= 0) ? "+" : "", roll->modifier);
 	}
-	if (flags.histogram) {
+	if (settings.histogram) {
 		const char *BAR = "##################################################";
 		const int BAR_LEN = 50;
 		int MAX = hist[1];
@@ -164,7 +176,7 @@ void print_rolls(struct DiceRoll *roll) {
 		while (pow(10, axis_width) <= roll->sides) axis_width++;
 		printf("    hist = [\n");
 		for (int i = 1; i <= roll->sides; i++) {
-			if (hist[i] != 0 || roll->sides <= MAX_HISTOGRAM_AXIS)
+			if (hist[i] != 0 || roll->sides <= settings.max_histogram_axis)
 				printf("        %*dx %*d: %.*s\n", width, hist[i], axis_width, i, (BAR_LEN*hist[i]+MAX/2)/MAX, BAR);
 			if (i == roll->sides) printf("    ]\n");
 		}
@@ -182,9 +194,9 @@ int main(int argc, char *argv[]) {
 	srand(time(NULL));
 	struct DiceRoll *roll = NULL;
 	if (argv[0][strlen(argv[0])-1] == 'v')
-		flags.less = false, flags.verbose = true, flags.histogram = false;
+		settings.reduced = false, settings.verbose = true, settings.histogram = false;
 	else if (argv[0][strlen(argv[0])-1] == 'h')
-		flags.less = false, flags.verbose = true, flags.histogram = true;
+		settings.reduced = false, settings.verbose = true, settings.histogram = true;
 	int num_flags = 0;
 	for (int i = 1; i < argc; i++) {
 		int j = 1;
@@ -192,18 +204,21 @@ int main(int argc, char *argv[]) {
 			while (argv[i][j] != '\0') {
 				switch (argv[i][j]) {
 				case 'l':
-					flags.less = true;
-					flags.verbose = false;
+					settings.max_rolls_to_print = UINT_MAX;
+					break;
+				case 'r':
+					settings.reduced = true;
+					settings.verbose = false;
 					break;
 				case 'v':
-					flags.less = false;
-					flags.verbose = true;
+					settings.reduced = false;
+					settings.verbose = true;
 					break;
 				case 'h':
-					flags.histogram = true;
+					settings.histogram = true;
 					break;
 				case 'n':
-					flags.histogram = false;
+					settings.histogram = false;
 					break;
 				default:
 					fprintf(stderr, "%s: error: illegal option %c\n", argv[0], argv[i][j]);
@@ -223,14 +238,14 @@ int main(int argc, char *argv[]) {
 			running_total += roll->sum;
 			free(roll);
 			roll = NULL;
-			if (!flags.seen_input) flags.seen_input = true;
+			if (!settings.seen_input) settings.seen_input = true;
 		}
 	}
-	if (!flags.seen_input) {
+	if (!settings.seen_input) {
 		fprintf(stderr, "usage: roll [-vh] dice ... \n");
 		return EXIT_FAILURE;
 	}
-	if (!flags.less) printf("total = %ld\n", running_total);
+	if (!settings.reduced) printf("total = %ld\n", running_total);
 	else if (argc-num_flags > 2) printf("%ld\n", running_total);
 	return EXIT_SUCCESS;
 }
