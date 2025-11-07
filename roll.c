@@ -12,6 +12,9 @@
 #define DEFAULT_MAX_HIST 20
 #define DEFAULT_HIST_BAR 60
 
+#define COLOR_BOLD 	"\e[1m"
+#define COLOR_OFF   "\e[m"
+
 const char *programName = "roll";
 const char *programUsage = "usage: roll [-a] [-l | -m] [-h] dice ...";
 
@@ -24,14 +27,12 @@ enum LevelOfDetail {
 struct ProgramSettings {
 	enum LevelOfDetail detail;
 	bool histogram; // print a histogram of the results
-	bool seen_input;
 	unsigned int max_rolls_to_print;
 	unsigned int max_hist_range;
 	unsigned char hist_bar_len;
 } settings = {
 	.detail = NORMAL,
 	.histogram = false,
-	.seen_input = false,
 	.max_rolls_to_print = DEFAULT_MAX_ROLLS,
 	.max_hist_range = DEFAULT_MAX_HIST,
 	.hist_bar_len = DEFAULT_HIST_BAR
@@ -64,7 +65,8 @@ int main(int argc, char *argv[]) {
 	long running_total = 0;
 	srand(time(NULL));
 	struct DiceRoll *roll = NULL;
-	int num_flags = 0;
+	int num_rolls = 0;
+	bool seen_input = false;
 	for (int i = 1; i < argc; i++) {
 		int j = 1;
 		if (argv[i][0] == '-' && argv[i][j] != '\0') {
@@ -74,7 +76,6 @@ int main(int argc, char *argv[]) {
 					return EXIT_FAILURE;
 				}
 				j++;
-				num_flags++;
 			}
 		} else {
 			roll = get_dice_roll(argv[i]);
@@ -85,17 +86,17 @@ int main(int argc, char *argv[]) {
 			calculate_dice_roll(roll);
 			print_roll_format(roll);
 			running_total += roll->sum;
+			num_rolls++;
 			free(roll);
 			roll = NULL;
-			if (!settings.seen_input) settings.seen_input = true;
+			if (!seen_input) seen_input = true;
 		}
 	}
-	if (!settings.seen_input) {
+	if (!seen_input) {
 		printf("%s\n", programUsage);
 		return EXIT_FAILURE;
 	}
-	if (settings.detail == MORE) printf("total = %ld\n", running_total);
-	else if (settings.detail == NORMAL && argc-num_flags > 2) printf("%ld\n", running_total);
+	if (settings.detail != LESS && num_rolls > 1) printf("total = %ld\n", running_total);
 	return EXIT_SUCCESS;
 }
 
@@ -240,18 +241,15 @@ void print_roll_format(struct DiceRoll *roll) {
 		print_roll_data(roll);
 		printf("\n");
 	} else if (settings.detail == NORMAL) {
-		printf("%ld", roll->sum);
+		print_roll_data(roll);
+		if (roll->len > 1) printf("\n    %ld", roll->sum);
 		if (roll->sides == 20 && hist[20] > 0) {
-			if (hist[20] == 1) printf(" (+crit)");
+			if (hist[20] == 1) printf(" (crit)");
 			else printf(" (+%d crits)", hist[20]);
-		}
-		if (roll->len > 1) {
-			printf("\n    ");
-			print_roll_data(roll);
 		}
 		printf("\n");
 	} else if (settings.detail == MORE) {
-		printf("rolled %s:\n    data = [", roll->descriptor);
+		printf(COLOR_BOLD "rolled %s:" COLOR_OFF "\n    data = [", roll->descriptor);
 		print_roll_data(roll);
 		printf("]\n    avg = %.3f\n", roll->average);
 		if (roll->sides == 20 && hist[1])  printf("    nat1 = %d\n", hist[1]);
