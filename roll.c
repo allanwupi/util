@@ -10,6 +10,7 @@
 #define DEFAULT_DIE_SIDES 20
 #define DEFAULT_MAX_ROLLS 20
 #define DEFAULT_MAX_HIST 20
+#define DEFAULT_HIST_BAR 60
 
 const char *programName = "roll";
 const char *programUsage = "usage: roll [-a] [-l | -m] [-h] dice ...";
@@ -25,8 +26,9 @@ struct ProgramSettings {
 	bool histogram; // print a histogram of the results
 	bool seen_input;
 	unsigned int max_rolls_to_print;
-	unsigned int max_histogram_axis;
-} settings = {NORMAL, false, DEFAULT_MAX_ROLLS, DEFAULT_MAX_HIST};
+	unsigned int max_hist_range;
+	unsigned char hist_bar_len;
+} settings = {NORMAL, false, false, DEFAULT_MAX_ROLLS, DEFAULT_MAX_HIST, DEFAULT_HIST_BAR};
 
 struct DiceRoll {
 	char descriptor[BUFFER_CHARS];
@@ -110,7 +112,12 @@ int parse_flag(char flag) {
 			settings.histogram = !settings.histogram;
 			break;
 		default:
-			return EXIT_FAILURE;
+			if ('0' <= flag && flag <= '9') {
+				settings.hist_bar_len = 10*(flag - '0');
+				if (settings.hist_bar_len == 0) settings.hist_bar_len = 100;
+			} else {
+				return EXIT_FAILURE;
+			}
 	}
 	return EXIT_SUCCESS;
 }
@@ -243,8 +250,10 @@ void print_roll_format(struct DiceRoll *roll) {
 		printf("    sum = %ld (%s%d)\n", roll->sum - roll->modifier, (roll->modifier >= 0) ? "+" : "", roll->modifier);
 	}
 	if (settings.histogram) {
-		const char *BAR = "##################################################";
-		const int BAR_LEN = 50;
+		const int BAR_LEN = settings.hist_bar_len;
+		char *BAR = (char *)malloc(BAR_LEN+1);
+		for (int i = 0; i < BAR_LEN; i++) BAR[i] = '#';
+		BAR[BAR_LEN] = '\0';
 		int MAX = hist[1];
 		for (int i = 2; i <= roll->sides; i++) MAX = (MAX < hist[i]) ? hist[i] : MAX;
 		int width = 1;
@@ -253,10 +262,11 @@ void print_roll_format(struct DiceRoll *roll) {
 		while (pow(10, axis_width) <= roll->sides) axis_width++;
 		printf("    hist = [\n");
 		for (int i = 1; i <= roll->sides; i++) {
-			if (hist[i] != 0 || roll->sides <= settings.max_histogram_axis)
+			if (hist[i] != 0 || roll->sides <= settings.max_hist_range)
 				printf("        %*dx %*d: %.*s\n", width, hist[i], axis_width, i, (BAR_LEN*hist[i]+MAX/2)/MAX, BAR);
 			if (i == roll->sides) printf("    ]\n");
 		}
+		free(BAR);
 	}
 	free(hist);
 }
