@@ -201,6 +201,7 @@ int main(int argc, char *argv[]) {
 					break;
 				default:
 					fprintf(stderr, "%s: error: illegal option %c\n", argv[0], argv[i][j]);
+					return EXIT_FAILURE;
 				}
 				j++;
 			}
