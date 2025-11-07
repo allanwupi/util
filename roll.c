@@ -28,7 +28,14 @@ struct ProgramSettings {
 	unsigned int max_rolls_to_print;
 	unsigned int max_hist_range;
 	unsigned char hist_bar_len;
-} settings = {NORMAL, false, false, DEFAULT_MAX_ROLLS, DEFAULT_MAX_HIST, DEFAULT_HIST_BAR};
+} settings = {
+	.detail = NORMAL,
+	.histogram = false,
+	.seen_input = false,
+	.max_rolls_to_print = DEFAULT_MAX_ROLLS,
+	.max_hist_range = DEFAULT_MAX_HIST,
+	.hist_bar_len = DEFAULT_HIST_BAR
+};
 
 struct DiceRoll {
 	char descriptor[BUFFER_CHARS];
