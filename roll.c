@@ -20,17 +20,17 @@ struct ProgramFlags {
 struct DiceRoll {
 	char descriptor[BUFFER_CHARS];
 	unsigned int len;
-	unsigned char sides;
+	unsigned int sides;
 	int rerolls; // positive for advantage, negative for disadvantage
 	int modifier;
-	int sum;
+	long sum;
 	double average;
-	unsigned char data[];
+	unsigned int data[];
 };
 
 void parse_roll(const char *arg, int *len, int *sides, int *rerolls, int *modifier);
 struct DiceRoll *get_dice_roll(const char *arg);
-unsigned char roll_die(unsigned char sides);
+unsigned int roll_die(unsigned int sides);
 void roll_dice(struct DiceRoll *roll);
 void print_rolls(struct DiceRoll *roll);
 
@@ -78,7 +78,7 @@ struct DiceRoll *get_dice_roll(const char *arg) {
 	int len = 0, sides = 0, rerolls = 0, modifier = 0;
 	parse_roll(arg, &len, &sides, &rerolls, &modifier);
 	if (len <= 0 || sides <= 0) return NULL; // failed arg parsing
-	roll = (struct DiceRoll *) calloc(sizeof(struct DiceRoll) + len, 1);
+	roll = (struct DiceRoll *) calloc(sizeof(struct DiceRoll) + len*sizeof(unsigned int), 1);
 	if (roll == NULL) return NULL; // failed to allocate memory
 	int buffered = 0;
 	if (modifier) buffered += snprintf(roll->descriptor, BUFFER_CHARS, "%id%i%+i", len, sides, modifier);
@@ -96,7 +96,7 @@ struct DiceRoll *get_dice_roll(const char *arg) {
 	return roll;
 }
 
-unsigned char roll_die(unsigned char sides) {
+unsigned int roll_die(unsigned int sides) {
 	const int LIMIT = RAND_MAX - (RAND_MAX % sides);
 	int r = RAND_MAX;
 	while (r >= LIMIT) r = rand();
@@ -104,8 +104,8 @@ unsigned char roll_die(unsigned char sides) {
 }
 
 void roll_dice(struct DiceRoll *roll) {
-	unsigned char curr_roll = 0;
-	unsigned char reroll = 0;
+	unsigned int curr_roll = 0;
+	unsigned int reroll = 0;
 	for (int i = 0; i < roll->len; i++) {
 		curr_roll = roll_die(roll->sides);
 		if (roll->rerolls != 0) {
@@ -126,10 +126,12 @@ void roll_dice(struct DiceRoll *roll) {
 }
 
 void print_rolls(struct DiceRoll *roll) {
-	int *hist = calloc(roll->sides+1, sizeof(int));
-	for (int i = 0; i < roll->len; i++) hist[roll->data[i]]++;
+	unsigned int *hist = calloc(roll->sides+1, sizeof(unsigned int));
+	for (int i = 0; i < roll->len; i++) {
+		hist[roll->data[i]]++;
+	}
 	if (flags.less) {
-		printf("%d ", roll->sum);
+		printf("%ld ", roll->sum);
 		if (roll->sides == 20 && hist[20] > 0) {
 			if (hist[20] == 1) printf("(+1 crit)");
 			else printf("(+%d crits)", hist[20]);
@@ -147,9 +149,9 @@ void print_rolls(struct DiceRoll *roll) {
 			if (i < roll->len-1) printf(",");
 		}
 		printf("]\n    avg = %.3f\n", roll->average);
-		if (hist[1])  printf("    nat1 = %d\n", hist[1]);
-		if (hist[20]) printf("    nat20 = %d\n", hist[20]);
-		printf("    sum = %d (%s%d)\n", roll->sum - roll->modifier, (roll->modifier >= 0) ? "+" : "", roll->modifier);
+		if (roll->sides == 20 && hist[1])  printf("    nat1 = %d\n", hist[1]);
+		if (roll->sides == 20 && hist[20]) printf("    nat20 = %d\n", hist[20]);
+		printf("    sum = %ld (%s%d)\n", roll->sum - roll->modifier, (roll->modifier >= 0) ? "+" : "", roll->modifier);
 	}
 	if (flags.histogram) {
 		const char *BAR = "##################################################";
@@ -176,7 +178,7 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "usage: roll [-vh] dice ... \n");
 		return EXIT_FAILURE;
 	}
-	int running_total = 0;
+	long running_total = 0;
 	srand(time(NULL));
 	struct DiceRoll *roll = NULL;
 	if (argv[0][strlen(argv[0])-1] == 'v')
@@ -228,7 +230,7 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "usage: roll [-vh] dice ... \n");
 		return EXIT_FAILURE;
 	}
-	if (!flags.less) printf("total = %d\n", running_total);
-	else if (argc-num_flags > 2) printf("%d\n", running_total);
+	if (!flags.less) printf("total = %ld\n", running_total);
+	else if (argc-num_flags > 2) printf("%ld\n", running_total);
 	return EXIT_SUCCESS;
 }
