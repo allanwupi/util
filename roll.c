@@ -3,11 +3,18 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <stdbool.h>
 
 #define MAX_ROLLS_TO_PRINT 20
 #define DEFAULT_DIE_SIDES 20
 #define MAX_HISTOGRAM_AXIS 20
 #define BUFFER_CHARS 100
+
+struct ProgramFlags {
+	bool less; // true by default, others false
+	bool verbose;
+	bool histogram;
+} flags = {true, false, false};
 
 struct DiceRoll {
 	char descriptor[BUFFER_CHARS];
@@ -24,7 +31,7 @@ void parse_arg_string(const char *arg, int *len, int *sides, int *rerolls, int *
 struct DiceRoll *convert_arg_to_dice(const char *arg);
 unsigned char roll_die(unsigned char sides);
 void roll_dice(struct DiceRoll *roll);
-void print_rolls(struct DiceRoll *roll, char verbose);
+void print_rolls(struct DiceRoll *roll);
 
 void parse_arg_string(const char *arg, int *len, int *sides, int *rerolls, int *modifier) {
 	char dest[BUFFER_CHARS] = {0};
@@ -70,6 +77,7 @@ struct DiceRoll *convert_arg_to_dice(const char *arg) {
 	parse_arg_string(arg, &len, &sides, &rerolls, &modifier);
 	if (len <= 0 || sides <= 0) return NULL; // failed arg parsing
 	roll = (struct DiceRoll *) calloc(sizeof(struct DiceRoll) + len, 1);
+	if (roll == NULL) return NULL; // failed to allocate memory
 	int buffered = 0;
 	if (modifier) buffered += snprintf(roll->descriptor, BUFFER_CHARS, "%id%i%+i", len, sides, modifier);
 	else buffered += snprintf(roll->descriptor, BUFFER_CHARS, "%id%i", len, sides);
@@ -115,32 +123,33 @@ void roll_dice(struct DiceRoll *roll) {
 	roll->sum += roll->modifier;
 }
 
-void print_rolls(struct DiceRoll *roll, char verbose) {
+void print_rolls(struct DiceRoll *roll) {
 	int *hist = calloc(roll->sides+1, sizeof(int));
 	for (int i = 0; i < roll->len; i++) hist[roll->data[i]]++;
-	if (verbose == 'l') {
+	if (flags.less) {
 		printf("%d ", roll->sum);
 		if (roll->sides == 20 && hist[20] > 0) {
 			if (hist[20] == 1) printf("(+1 crit)");
 			else printf("(+%d crits)", hist[20]);
 		}
 		printf("\n");
-		return;
 	}
-	printf("rolled %s:\n    data = [", roll->descriptor);
-	for (int i = 0; i < roll->len; i++) {
-		if (i < MAX_ROLLS_TO_PRINT) printf("%i",roll->data[i]);
-		if (i == MAX_ROLLS_TO_PRINT) {
-			printf("..."); 
-			break;
+	if (flags.verbose) {
+		printf("rolled %s:\n    data = [", roll->descriptor);
+		for (int i = 0; i < roll->len; i++) {
+			if (i < MAX_ROLLS_TO_PRINT) printf("%i",roll->data[i]);
+			if (i == MAX_ROLLS_TO_PRINT) {
+				printf("..."); 
+				break;
+			}
+			if (i < roll->len-1) printf(",");
 		}
-		if (i < roll->len-1) printf(",");
+		printf("]\n    sum = %d\n", roll->sum);
+		printf("    avg = %.3f\n", roll->average);
+		if (hist[1])  printf("    nat1 = %d\n", hist[1]);
+		if (hist[20]) printf("    nat20 = %d\n", hist[20]);
 	}
-	printf("]\n    sum = %d\n", roll->sum);
-	printf("    avg = %.3f\n", roll->average);
-	if (hist[1])  printf("    nat1 = %d\n", hist[1]);
-	if (hist[20]) printf("    nat20 = %d\n", hist[20]);
-	if (verbose == 'h') {
+	if (flags.histogram) {
 		const char *BAR = "##################################################";
 		const int BAR_LEN = 50;
 		int MAX = hist[1];
@@ -157,7 +166,7 @@ void print_rolls(struct DiceRoll *roll, char verbose) {
 		}
 	}
 	free(hist);
-}
+	}
 
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
@@ -165,22 +174,50 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 	int running_total = 0;
-	char verbose = argv[0][strlen(argv[0])-1];
 	srand(time(NULL));
 	struct DiceRoll *roll = NULL;
+	if (argv[0][strlen(argv[0])-1] == 'v')
+		flags.less = false, flags.verbose = true, flags.histogram = false;
+	else if (argv[0][strlen(argv[0])-1] == 'h')
+		flags.less = false, flags.verbose = true, flags.histogram = true;
+	int j = 1; // tracks flags
 	for (int i = 1; i < argc; i++) {
-		roll = convert_arg_to_dice(argv[i]);
-		if (roll == NULL) {
-			fprintf(stderr, "%s: error: failed to parse arg %s\n", argv[0], argv[i]);
-			return EXIT_FAILURE;
+		if (argv[i][0] == '-' && argv[i][j] != '\0') {
+			while (argv[i][j] != '\0') {
+				switch (argv[i][j]) {
+				case 'l':
+					flags.less = true;
+					flags.verbose = false;
+					break;
+				case 'v':
+					flags.less = false;
+					flags.verbose = true;
+					break;
+				case 'h':
+					flags.histogram = true;
+					break;
+				case 'n':
+					flags.histogram = false;
+					break;
+				default:
+					fprintf(stderr, "%s: error: illegal option %c\n", argv[0], argv[i][j]);
+				}
+				j++;
+			}
+		} else {
+			roll = convert_arg_to_dice(argv[i]);
+			if (roll == NULL) {
+				fprintf(stderr, "%s: error: failed to parse arg %s\n", argv[0], argv[i]);
+				return EXIT_FAILURE;
+			}
+			roll_dice(roll);
+			print_rolls(roll);
+			running_total += roll->sum;
+			free(roll);
+			roll = NULL;
 		}
-		roll_dice(roll);
-		print_rolls(roll, verbose);
-		running_total += roll->sum;
-		free(roll);
-		roll = NULL;
 	}
-	if (verbose != 'l') printf("total = %d\n", running_total);
-	else if (argc > 2) printf("%d\n", running_total);
+	if (!flags.less) printf("total = %d\n", running_total);
+	else if (argc-j+1 > 2) printf("%d\n", running_total);
 	return EXIT_SUCCESS;
 }
