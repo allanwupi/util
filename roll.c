@@ -17,7 +17,7 @@ const char *programUsage = "usage: roll [-a] [-l | -m] [-h] dice ...";
 
 enum LevelOfDetail {
 	NORMAL, // print the total, crits (nat 20s) and dice values
-	LESS, // minimal: print only the total and crits (nat 20s)
+	LESS, // minimal: print only the dice values
 	MORE, // verbose: print descriptor string, average, nat1s/nat20s, sum and modifier
 };
 
@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 	if (settings.detail == MORE) printf("total = %ld\n", running_total);
-	else if (argc-num_flags > 2) printf("%ld\n", running_total);
+	else if (settings.detail == NORMAL && argc-num_flags > 2) printf("%ld\n", running_total);
 	return EXIT_SUCCESS;
 }
 
@@ -229,19 +229,19 @@ void print_roll_format(struct DiceRoll *roll) {
 	for (int i = 0; i < roll->len; i++) {
 		hist[roll->data[i]]++;
 	}
-	if (settings.detail == NORMAL || settings.detail == LESS) {
+	if (settings.detail == LESS) {
+		print_roll_data(roll);
+		printf("\n");
+	} else if (settings.detail == NORMAL) {
 		printf("%ld", roll->sum);
 		if (roll->sides == 20 && hist[20] > 0) {
 			if (hist[20] == 1) printf(" (+1 crit)");
 			else printf(" (+%d crits)", hist[20]);
 		}
-		if (settings.detail != LESS) {
-			printf("\n    : ");
-			print_roll_data(roll);
-		}
+		printf("\n    ");
+		print_roll_data(roll);
 		printf("\n");
-	}
-	if (settings.detail == MORE) {
+	} else if (settings.detail == MORE) {
 		printf("rolled %s:\n    data = [", roll->descriptor);
 		print_roll_data(roll);
 		printf("]\n    avg = %.3f\n", roll->average);
