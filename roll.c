@@ -8,7 +8,7 @@
 #define MAX_ROLLS_TO_PRINT 20
 #define DEFAULT_DIE_SIDES 20
 #define MAX_HISTOGRAM_AXIS 20
-#define BUFFER_CHARS 100
+#define BUFFER_CHARS 80
 
 struct ProgramFlags {
 	bool less; // true by default, others false
@@ -28,13 +28,13 @@ struct DiceRoll {
 	unsigned char data[];
 };
 
-void parse_arg_string(const char *arg, int *len, int *sides, int *rerolls, int *modifier);
-struct DiceRoll *convert_arg_to_dice(const char *arg);
+void parse_roll(const char *arg, int *len, int *sides, int *rerolls, int *modifier);
+struct DiceRoll *get_dice_roll(const char *arg);
 unsigned char roll_die(unsigned char sides);
 void roll_dice(struct DiceRoll *roll);
 void print_rolls(struct DiceRoll *roll);
 
-void parse_arg_string(const char *arg, int *len, int *sides, int *rerolls, int *modifier) {
+void parse_roll(const char *arg, int *len, int *sides, int *rerolls, int *modifier) {
 	char dest[BUFFER_CHARS] = {0};
 	strncpy(dest, arg, BUFFER_CHARS-1);
 	int i = 0;
@@ -73,10 +73,10 @@ void parse_arg_string(const char *arg, int *len, int *sides, int *rerolls, int *
 	else *modifier = 0;
 }
 
-struct DiceRoll *convert_arg_to_dice(const char *arg) {
+struct DiceRoll *get_dice_roll(const char *arg) {
 	struct DiceRoll *roll = NULL;
 	int len = 0, sides = 0, rerolls = 0, modifier = 0;
-	parse_arg_string(arg, &len, &sides, &rerolls, &modifier);
+	parse_roll(arg, &len, &sides, &rerolls, &modifier);
 	if (len <= 0 || sides <= 0) return NULL; // failed arg parsing
 	roll = (struct DiceRoll *) calloc(sizeof(struct DiceRoll) + len, 1);
 	if (roll == NULL) return NULL; // failed to allocate memory
@@ -209,7 +209,7 @@ int main(int argc, char *argv[]) {
 				j++;
 			}
 		} else {
-			roll = convert_arg_to_dice(argv[i]);
+			roll = get_dice_roll(argv[i]);
 			if (roll == NULL) {
 				fprintf(stderr, "%s: error: failed to parse arg %s\n", argv[0], argv[i]);
 				return EXIT_FAILURE;
