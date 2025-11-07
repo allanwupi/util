@@ -183,8 +183,9 @@ int main(int argc, char *argv[]) {
 		flags.less = false, flags.verbose = true, flags.histogram = false;
 	else if (argv[0][strlen(argv[0])-1] == 'h')
 		flags.less = false, flags.verbose = true, flags.histogram = true;
-	int j = 1; // tracks flags
+	int num_flags = 0;
 	for (int i = 1; i < argc; i++) {
+        int j = 1;
 		if (argv[i][0] == '-' && argv[i][j] != '\0') {
 			while (argv[i][j] != '\0') {
 				switch (argv[i][j]) {
@@ -207,6 +208,7 @@ int main(int argc, char *argv[]) {
 					return EXIT_FAILURE;
 				}
 				j++;
+                num_flags++;
 			}
 		} else {
 			roll = get_dice_roll(argv[i]);
@@ -227,6 +229,6 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 	if (!flags.less) printf("total = %d\n", running_total);
-	else if (argc-j+1 > 2) printf("%d\n", running_total);
+	else if (argc-num_flags > 2) printf("%d\n", running_total);
 	return EXIT_SUCCESS;
 }
