@@ -55,10 +55,6 @@ int main(int argc, char *argv[]) {
 	long running_total = 0;
 	srand(time(NULL));
 	struct DiceRoll *roll = NULL;
-	if (argv[0][strlen(argv[0])-1] == 'v')
-		settings.detail = MORE;
-	else if (argv[0][strlen(argv[0])-1] == 'h')
-		settings.detail = MORE, settings.histogram = true;
 	int num_flags = 0;
 	for (int i = 1; i < argc; i++) {
 		int j = 1;
