@@ -16,7 +16,7 @@
 #define COLOR_OFF   "\e[m"
 
 const char *programName = "roll";
-const char *programUsage = "usage: roll [-a] [-l | -m] [-h] dice ...";
+const char *programUsage = "usage: roll [-a] [-l | -v] [-h] dice ...";
 
 enum LevelOfDetail {
 	NORMAL, // print the total, crits (nat 20s) and dice values
@@ -223,7 +223,8 @@ void calculate_dice_roll(struct DiceRoll *roll) {
 
 void print_roll_data(struct DiceRoll *roll) {
 	for (int i = 0; i < roll->len; i++) {
-		if (i < settings.max_rolls_to_print) printf("%i",roll->data[i]);
+        int modified_roll = (roll->len == 1) ? roll->sum : roll->data[i];
+		if (i < settings.max_rolls_to_print) printf("%i", modified_roll);
 		if (i == settings.max_rolls_to_print) {
 			printf("..."); 
 			break;
@@ -255,6 +256,7 @@ void print_roll_format(struct DiceRoll *roll) {
 		if (roll->sides == 20 && hist[1])  printf("    nat1 = %d\n", hist[1]);
 		if (roll->sides == 20 && hist[20]) printf("    nat20 = %d\n", hist[20]);
 		printf("    sum = %ld (%s%d)\n", roll->sum - roll->modifier, (roll->modifier >= 0) ? "+" : "", roll->modifier);
+		printf("    tot = %ld\n", roll->sum);
 	}
 	if (settings.histogram) {
 		const int BAR_LEN = settings.hist_bar_len;
